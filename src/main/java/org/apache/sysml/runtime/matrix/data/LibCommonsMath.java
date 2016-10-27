@@ -242,9 +242,9 @@ public class LibCommonsMath
 			DenseMatrix vt = svd.getVt();
 			double[] sigma = svd.getS();
 
-			MatrixBlock U = new MatrixBlock();
+			MatrixBlock U = new MatrixBlock(u.numRows(), u.numColumns(), false);
 			U.init(u.getData(), u.numRows(), u.numColumns());
-			MatrixBlock Vt = new MatrixBlock();
+			MatrixBlock Vt = new MatrixBlock(vt.numRows(), vt.numColumns(), false);
 			Vt.init(vt.getData(), vt.numRows(), vt.numColumns());
 			MatrixBlock Sigma = DataConverter.convertToMatrixBlock(sigma, true);
 

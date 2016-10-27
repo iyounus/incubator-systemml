@@ -19,6 +19,9 @@
 
 package org.apache.sysml.runtime.matrix.data;
 
+import no.uib.cipr.matrix.DenseMatrix;
+import no.uib.cipr.matrix.NotConvergedException;
+import no.uib.cipr.matrix.SVD;
 import org.apache.commons.math3.linear.*;
 import org.apache.sysml.runtime.DMLRuntimeException;
 import org.apache.sysml.runtime.controlprogram.caching.MatrixObject;
@@ -219,23 +222,36 @@ public class LibCommonsMath
 	 * X = U * Sigma * Vt, where X is the input matrix,
 	 * U is the left singular matrix, Sigma is the singular values matrix returned as a
 	 * column matrix and Vt is the transpose of the right singular matrix V.
-	 * However, the returned array has  { U, Sigma, V}
+	 * The returned array has  { U, Sigma, Vt}
 	 * @param in	Input matrix
-	 * @return 		An array containing U, Sigma & V
+	 * @return 		An array containing U, Sigma & Vt
 	 * @throws DMLRuntimeException
 	 */
 	private static MatrixBlock[] computeSvd(MatrixObject in) throws DMLRuntimeException {
-		Array2DRowRealMatrix matrixInput = DataConverter.convertToArray2DRowRealMatrix(in);
 
-		SingularValueDecomposition svd = new SingularValueDecomposition(matrixInput);
-		double[] sigma = svd.getSingularValues();
-		RealMatrix u = svd.getU();
-		RealMatrix v = svd.getV();
-		MatrixBlock U = DataConverter.convertToMatrixBlock(u.getData());
-		MatrixBlock Sigma = DataConverter.convertToMatrixBlock(sigma, true);
-		MatrixBlock V = DataConverter.convertToMatrixBlock(v.getData());
+		try {
+			MatrixBlock input = in.acquireRead();
+			DenseMatrix X = new DenseMatrix((int) in.getNumRows(), (int) in.getNumColumns(), input.getDenseBlock(), false);
 
-		return new MatrixBlock[] { U, Sigma, V };
+			SVD svd = new SVD((int) in.getNumRows(), (int) in.getNumColumns());
+			svd.factorize(X);
+
+			in.release();
+
+			DenseMatrix u = svd.getU();
+			DenseMatrix vt = svd.getVt();
+			double[] sigma = svd.getS();
+
+			MatrixBlock U = new MatrixBlock();
+			U.init(u.getData(), u.numRows(), u.numColumns());
+			MatrixBlock Vt = new MatrixBlock();
+			Vt.init(vt.getData(), vt.numRows(), vt.numColumns());
+			MatrixBlock Sigma = DataConverter.convertToMatrixBlock(sigma, true);
+
+			return new MatrixBlock[]{U, Sigma, Vt};
+		} catch (NotConvergedException e) {
+			throw new DMLRuntimeException(e);
+		}
 	}
 	
 	/**

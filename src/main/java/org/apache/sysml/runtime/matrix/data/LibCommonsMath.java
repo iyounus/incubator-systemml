@@ -232,9 +232,7 @@ public class LibCommonsMath
 		try {
 			MatrixBlock input = in.acquireRead();
 			DenseMatrix X = new DenseMatrix((int) in.getNumRows(), (int) in.getNumColumns(), input.getDenseBlock(), false);
-
-			SVD svd = new SVD((int) in.getNumRows(), (int) in.getNumColumns());
-			svd.factorize(X);
+			SVD svd = new SVD(X.numRows(), X.numColumns(), true).factorize(X);
 
 			in.release();
 

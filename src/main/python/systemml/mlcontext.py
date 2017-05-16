@@ -121,25 +121,19 @@ def _java2py(sc, obj):
 
 def _py2java(sc, obj):
     """ Convert Python object to Java. """
-    print("py2java:",obj)
-
     if isinstance(obj, SUPPORTED_TYPES):
         obj = convertToMatrixBlock(sc, obj)
     elif isinstance(obj, Matrix):
         obj = obj._java_matrix
     elif isinstance(obj, MatrixMetadata):
-        print("py4java: got metadata obj")
         obj = _matrix_metadata(sc, obj)
     else:
         # TODO: Port this private PySpark function.
-        print("py2java TODO part")
         obj = pyspark.mllib.common._py2java(sc, obj)
     return obj
 
 def _matrix_metadata(sc, obj):
-    print("creating metadata")
     if obj._fmt == 'ijv':
-        print("its ijv")
         fmt = sc._jvm.org.apache.sysml.api.mlcontext.MatrixFormat.IJV
     elif fmt == 'csv':
         fmt = sc._jvm.org.apache.sysml.api.mlcontext.MatrixFormat.CSV
@@ -281,7 +275,6 @@ class Script(object):
         kwargs: dict of name, value pairs
             To know what formats are supported for name and value, look above.
         """
-        print("args: ", args)
         if len(args) == 2:
             self._input[args[0]] = [args[1]]
         elif len(args) == 3:
@@ -364,7 +357,6 @@ class MLContext(object):
                 script_java = self._sc._jvm.org.apache.sysml.api.mlcontext.ScriptFactory.pydml(scriptString)
 
         for key, val in script._input.items():
-            print("val1:", val)
             # `in` is a reserved word ("keyword") in Python, so `script_java.in(...)` is not
             # allowed. Therefore, we use the following code in which we retrieve a function
             # representing `script_java.in`, and then call it with the arguments.  This is in
@@ -373,10 +365,8 @@ class MLContext(object):
             # if isinstance(val[0], py4j.java_gateway.JavaObject):
             #     py4j.java_gateway.get_method(script_java, "in")(key, val[0])
             if len(val) == 1:
-                print("val2: ", val[0])
                 py4j.java_gateway.get_method(script_java, "in")(key, _py2java(self._sc, val[0]))
             elif len(val) == 2:
-                print("val3:", val)
                 py4j.java_gateway.get_method(script_java, "in")(key, _py2java(self._sc, val[0]),
                                                                 _py2java(self._sc, val[1]))
             else:
